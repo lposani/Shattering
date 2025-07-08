@@ -339,11 +339,11 @@ def merge_dict_values(d):
 def parhash(params):
     name = '_'.join([k + '=%s' % params[k] for k in params.keys()])
     s = hashlib.md5(bytes(name, 'utf-8')).hexdigest()
-    return name, s[:8]
+    return s[:4]
 
 
-def write_params(dir, params):
-    with open(dir+'/params.txt', 'w') as f:
+def write_params(dir, params, name='params'):
+    with open(dir+f'/{name}.txt', 'w') as f:
         for k in params:
             f.write(f'{k}: {params[k]}\n')
 

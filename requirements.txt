@@ -1,0 +1,12 @@
+decodanda>=0.6.6
+ibllib>=2.26
+numpy>=1.26.2
+pandas>=2.1.3
+matplotlib>=3.8.2
+scipy>=1.11.4
+iblutil>=1.7.2
+scikit-learn>=1.3.2
+phylib>=2.4.3
+slidingRP>=1.0.0
+seaborn>=0.13.0
+opencv-python>=4.8.1.78

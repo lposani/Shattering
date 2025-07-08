@@ -6,13 +6,22 @@ import warnings
 warnings.filterwarnings('ignore')
 np.random.seed(0)
 
-folder = 'SD IC cdf'
-n_megapooled = IBL_params['neurons']
+folder = 'IC'
 
+synthetic_params = {
+    'N': 400,
+    'T': 100,
+    'sigma': 0.5,
+    'alpha': 0
+}
+
+mkdir('./plots/IBL/'+folder+'/SD')
+mkdir('./datasets/IBL/SD_cache')
 write_params('./plots/IBL/%s' % folder, IBL_params)
+write_params('./plots/IBL/%s' % folder, synthetic_params, name='synthetic_params')
 
 # Additional stuff
-reduced_CT = pickle.load(open('./datasets/reduced_CT.pck', 'rb'))
+reduced_CT = pickle.load(open('./datasets/IBL/reduced_CT.pck', 'rb'))
 cortical_regions = list(cortical_regions.values)
 
 # Revised results
@@ -24,36 +33,11 @@ results_revision = {
     'perfs null IC (alldics)': []
 }
 decoding_params['cross_validations'] = 20
-decoding_params['break_correlations'] = False
-nnulls = 200
+nnulls = 100
 
-# Low-dimensional synthetic data
-perfs_synthetic = {}
-perfs_null_synthetic = {}
-
-# Synthetic:
-alpha = 0.0
-r = 1.0
-N = 1000
-T = 200
-sigma = 1.0
-
-# for L in [2, 3, 4]:
-#     decoding_params['ndata'] = int(400 / 2 ** L)
-#     trials = generate_latent_representations(L=L, alpha=alpha, sigma=sigma, T=T, N=N, visualize=False)
-#     perfs, perfs_null, fingerptints = shattering_dimensionality([trials], nreps=None,
-#                                                                 region=f'Synthetic_L={L}_r={r}_N={N}_T={T}_s={sigma:.2f}_a={alpha:.2f}',
-#                                                                 folder=folder,
-#                                                                 nnulls=100,
-#                                                                 cache_name=f'synthetic_L={L}_r={r}_N={N}_T={T}_s={sigma:.2f}_a={alpha:.2f}_{parhash(decoding_params)[1]}',
-#                                                                 convert_dic=False,
-#                                                                 **decoding_params)
-#     perfs_synthetic[L] = perfs
-#     perfs_null_synthetic[L] = perfs_null
-
-for region in list(reduced_CT.keys())[::-1]:
+for region in ['SSp-n']: # list(reduced_CT.keys())[::-1]:
     print(region)
-    n_neurons = 4000  # IBL_params['neurons']
+    n_neurons = IBL_params['neurons']
 
     IC = len(reduced_CT[region][0].keys())
     keys = list(reduced_CT[region][0].keys())
@@ -66,17 +50,14 @@ for region in list(reduced_CT.keys())[::-1]:
     print("Running: SD IC")
     perfs_region = {}
 
-    if IC % 2:  # correct the dichotomies bug that only happened for odd IC
-        cache_name = f'{region}_IC_{parhash(decoding_params)[1]}_corrected'
-    else:
-        cache_name = f'{region}_IC_{parhash(decoding_params)[1]}'
+    cache_name = f'{region}_IC_{parhash(decoding_params)}'
     perfs_orig, perfs_null, fingerprints = shattering_dimensionality(megapooling * reduced_CT[region],
                                                                      nreps=None,
-                                                                     nnulls=100,
+                                                                     nnulls=nnulls,
                                                                      n_neurons=n_neurons,
-                                                                     region=region + '4000',
+                                                                     region=region,
                                                                      folder=folder,
-                                                                     cache_name=cache_name + '4000',
+                                                                     cache_name=cache_name,
                                                                      IC=True,
                                                                      **decoding_params)
 
@@ -88,13 +69,13 @@ for region in list(reduced_CT.keys())[::-1]:
     ax.set_ylabel('Cumulative Density')
     ts, y_orig, ax = csd_plot(perfs_orig, t0=np.percentile(perfs_null, 99), t1=np.nanmax(perfs_orig), label=region, ax=ax, linewidth=2)
 
-    Ls = range(1, min(IC+1, 6))
+    Ls = range(1, min(IC+1, 7))
     for L in Ls:
-        trials = generate_latent_representations(L=L, P=IC, alpha=0, sigma=sigma, T=T, N=N, visualize=False)
-        cache_name = f'synthetic_IC_{parhash(decoding_params)[1]}_P={IC}_L={L}_s={sigma}'
+        trials = generate_latent_representations(L=L, P=IC, **synthetic_params)
+        cache_name = f'synthetic_IC_{parhash(decoding_params)}_P={IC}_L={L}_{parhash(synthetic_params)}'
         perfs_L, perfs_null_L, fingerprints_L = shattering_dimensionality([trials],
                                                                           nreps=None,
-                                                                          nnulls=100,
+                                                                          nnulls=10,
                                                                           region=f'synthetic_P={IC}_L={L}',
                                                                           folder=folder,
                                                                           cache_name=cache_name,
