@@ -2,6 +2,7 @@ from IBL_settings import *
 from source.analysis.Dimensionality import *
 from source.analysis.Clustering import *
 import warnings
+import sys
 
 warnings.filterwarnings('ignore')
 np.random.seed(0)
@@ -26,31 +27,26 @@ cortical_regions = list(cortical_regions.values)
 
 # Revised results
 
-results_revision = {
-    'region': [],
-    'SD IC (alldics)': [],
-    'perfs IC (alldics)': [],
-    'perfs null IC (alldics)': []
-}
-decoding_params['cross_validations'] = 20
+ndata_tot = decoding_params['ndata']
 nnulls = 100
+decoding_parhash = parhash(decoding_params)
 
-for region in ['SSp-n']: # list(reduced_CT.keys())[::-1]:
-    print(region)
+
+def run(region):
     n_neurons = IBL_params['neurons']
-
     IC = len(reduced_CT[region][0].keys())
     keys = list(reduced_CT[region][0].keys())
-    decoding_params['ndata'] = int(500 / IC)
     n = np.sum([c[keys[0]].shape[1] for c in reduced_CT[region]])
     megapooling = ceil(n_neurons / n)
-    print(n, megapooling, IC)
+    print(region, n, megapooling, IC)
+
+    decoding_params['ndata'] = int(ndata_tot / IC)
 
     # ---------- Shattering Dimensionality IC ----------
     print("Running: SD IC")
     perfs_region = {}
 
-    cache_name = f'{region}_IC_{parhash(decoding_params)}'
+    cache_name = f'{region}_IC_{decoding_parhash}'
     perfs_orig, perfs_null, fingerprints = shattering_dimensionality(megapooling * reduced_CT[region],
                                                                      nreps=None,
                                                                      nnulls=nnulls,
@@ -72,10 +68,10 @@ for region in ['SSp-n']: # list(reduced_CT.keys())[::-1]:
     Ls = range(1, min(IC+1, 7))
     for L in Ls:
         trials = generate_latent_representations(L=L, P=IC, **synthetic_params)
-        cache_name = f'synthetic_IC_{parhash(decoding_params)}_P={IC}_L={L}_{parhash(synthetic_params)}'
+        cache_name = f'synthetic_IC_{decoding_parhash}_P={IC}_L={L}_{parhash(synthetic_params)}'
         perfs_L, perfs_null_L, fingerprints_L = shattering_dimensionality([trials],
                                                                           nreps=None,
-                                                                          nnulls=10,
+                                                                          nnulls=nnulls,
                                                                           region=f'synthetic_P={IC}_L={L}',
                                                                           folder=folder,
                                                                           cache_name=cache_name,
@@ -97,9 +93,11 @@ for region in ['SSp-n']: # list(reduced_CT.keys())[::-1]:
     f.savefig(f'./plots/IBL/{folder}/{region}_cdf.pdf')
     plt.close(f)
 
-    results_revision['region'].append(region)
-    results_revision['SD IC (alldics)'].append(np.nanmean(perfs_orig > np.percentile(perfs_null, 99)))
-    results_revision['perfs IC (alldics)'].append(perfs_orig)
-    results_revision['perfs null IC (alldics)'].append(perfs_null)
 
-    pickle.dump(results_revision, open('./datasets/IBL_revisions_SD.pck', 'wb'))
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print("Usage: python SD-pipeline.py <region>")
+        sys.exit(1)
+
+    region = sys.argv[1]
+    run(region)

@@ -40,8 +40,8 @@ variables = {
 decoding_params = {
     'training_fraction': 0.8,
     'nshuffles': 0,
-    'cross_validations': 100,
-    'ndata': 100
+    'cross_validations': 20,
+    'ndata': 500
 }
 
 # ---------------- SD parameters ----------------
