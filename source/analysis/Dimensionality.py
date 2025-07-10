@@ -260,29 +260,27 @@ def decode_dichotomy(conditioned_trials, dichotomy=None,
             C = sklearn.decomposition.PCA(n_components=subspace)
             X = CT_to_X(training_trials, zscore=False)
             C.fit(X)
-            training_subspace = C.components_
 
             collapsed_training_array_A = []
             for t in training_array_A:
-                collapsed_training_array_A.append(collapse_raster_subspace(t, training_subspace))
+                collapsed_training_array_A.append(C.transform(t))
             training_array_A = np.vstack(collapsed_training_array_A)
 
             collapsed_training_array_B = []
             for t in training_array_B:
-                collapsed_training_array_B.append(collapse_raster_subspace(t, training_subspace))
+                collapsed_training_array_B.append(C.transform(t))
             training_array_B = np.vstack(collapsed_training_array_B)
 
-            # Collapse testing data
-            testing_subspace = training_subspace
 
+            # Collapse testing data
             collapsed_testing_array_A = []
             for t in testing_array_A:
-                collapsed_testing_array_A.append(collapse_raster_subspace(t, testing_subspace))
+                collapsed_testing_array_A.append(C.transform(t))
             testing_array_A = np.vstack(collapsed_testing_array_A)
 
             collapsed_testing_array_B = []
             for t in testing_array_B:
-                collapsed_testing_array_B.append(collapse_raster_subspace(t, testing_subspace))
+                collapsed_testing_array_B.append(C.transform(t))
             testing_array_B = np.vstack(collapsed_testing_array_B)
 
         else:
@@ -838,13 +836,13 @@ def decoding_matrix_PS(conditioned_trials, n_neurons=None, plot_mds=False,
 
             if perf_threshold is None:
                 z, p = z_pval(perf, null)
-                print('%.2f' % perf, p_to_text(p))
+                # print('%.2f' % perf, p_to_text(p))
                 Dz[i, j] = z
                 Dz[j, i] = z
             else:
                 Dz[i, j] = 3 * (perf > perf_threshold)
                 Dz[j, i] = 3 * (perf > perf_threshold)
-                print('%.2f' % perf)
+                # print('%.2f' % perf)
 
     if plot_matrix:
         f, axs = plt.subplots(2, 2, figsize=(10, 8))
@@ -1007,6 +1005,37 @@ def independent_conditions_PS(conditioned_trials, n_neurons=None, z_threshold=2.
                                      **decoding_params)
 
 
+def tune_noise(region, trials, L, P, synthetic_params, decoding_params, IBL_params):
+    mkdir('./datasets/IBL/tune_noise')
+    cachepath = f'./datasets/IBL/tune_noise/{region}-{L}-{P}-{parhash(synthetic_params)}-{parhash(decoding_params)}-{parhash(IBL_params)}.pck'
+    if os.path.exists(cachepath):
+        best_sigma = pickle.load(open(cachepath, 'rb'))
+        return best_sigma
+
+    cachepath = f'./datasets/IBL/tune_noise/{region}-D-{parhash(decoding_params)}-{parhash(IBL_params)}.pck'
+    if os.path.exists(cachepath):
+        D = pickle.load(open(cachepath, 'rb'))
+    else:
+        D, Dz, precomputed_perfs, labels_str = decoding_matrix_PS(trials,
+                                                                  plot_matrix=False,
+                                                                  perf_threshold=0.666,
+                                                                  **decoding_params)
+    target = np.nanmean(D[D>0])
+
+    best_sigma = 0.1
+    for sigma in np.linspace(0.1, 10.0, 100):
+        synthetic_params['sigma'] = sigma
+        trials_s = generate_latent_representations(L=L, P=P, **synthetic_params)
+        D_s, Dz, precomputed_perfs, labels_str = decoding_matrix_PS(trials_s, plot_matrix=False,
+                                                                    perf_threshold=0.666, **decoding_params)
+        print(sigma, np.nanmean(D_s[D_s > 0]))
+        if np.nanmean(D_s[D_s > 0]) < target:
+            break
+        best_sigma = sigma
+    pickle.dump(best_sigma, open(cachepath, 'wb'))
+    return best_sigma
+
+
 def key_scatter(res, key1, key2, hierarchy, hue='region', ax=None, colors=None, corr='reg', linecolor='k'):
     figflag = False
 
@@ -1082,7 +1111,7 @@ def generate_latent_representations(L, alpha, sigma, T=100, N=400, P=None, weigh
         P = 2 ** L
         labels = [''.join(x) for x in ((v + 1) / 2).astype(int).astype(str)]
     else:
-        v = 2*np.random.rand(P, L) - 1  # uniform in [-1, 1] L-cube
+        v = np.random.randn(P, L)  # uniform in [-1, 1] L-cube
         labels = [f'{i}' for i in range(P)]
 
     if weights is not None:
@@ -1092,9 +1121,8 @@ def generate_latent_representations(L, alpha, sigma, T=100, N=400, P=None, weigh
     trials = {}
 
     for i in range(P):
-        trials[labels[i]] = np.dot(v[i], U) + np.random.randn(N) * alpha * 2 * np.sqrt(L) + np.random.randn(T,
-                                                                                                            N) * sigma * np.sqrt(
-            L) * np.sqrt(2 + 2. * alpha ** 2.)
+        trials[labels[i]] = np.dot(v[i], U) + np.random.randn(N) * alpha * 2 * np.sqrt(L) \
+                            + np.random.randn(T, N) * sigma * np.sqrt(L) * np.sqrt(2 + 2. * alpha ** 2.)
     if visualize:
         X = np.vstack(list(trials.values()))
         y = np.repeat(labels, T)

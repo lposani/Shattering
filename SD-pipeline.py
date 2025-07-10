@@ -23,7 +23,7 @@ write_params('./plots/IBL/%s' % folder, synthetic_params, name='synthetic_params
 
 # Additional stuff
 reduced_CT = pickle.load(open('./datasets/IBL/reduced_CT.pck', 'rb'))
-cortical_regions = list(cortical_regions.values)
+cortical_regions = list(reduced_CT.keys())
 
 # Revised results
 
@@ -44,8 +44,6 @@ def run(region):
 
     # ---------- Shattering Dimensionality IC ----------
     print("Running: SD IC")
-    perfs_region = {}
-
     cache_name = f'{region}_IC_{decoding_parhash}'
     perfs_orig, perfs_null, fingerprints = shattering_dimensionality(megapooling * reduced_CT[region],
                                                                      nreps=None,
@@ -64,15 +62,22 @@ def run(region):
     ax.set_xlabel('Decoding Performance (normalized)')
     ax.set_ylabel('Cumulative Density')
     ts, y_orig, ax = csd_plot(perfs_orig, t0=np.percentile(perfs_null, 99), t1=np.nanmax(perfs_orig), label=region, ax=ax, linewidth=2)
-
-    Ls = range(1, min(IC+1, 7))
+    Ls = range(1, IC+1)
     for L in Ls:
+        synthetic_params['sigma'] = 1.0
+        # Tune sigma in synthetic_params
+        sigma = tune_noise(region=region, trials=megapooling*reduced_CT[region], L=L, P=IC,
+                           synthetic_params=synthetic_params, decoding_params=decoding_params, IBL_params=IBL_params)
+
+        synthetic_params['sigma'] = sigma
+
+        # Run
         trials = generate_latent_representations(L=L, P=IC, **synthetic_params)
         cache_name = f'synthetic_IC_{decoding_parhash}_P={IC}_L={L}_{parhash(synthetic_params)}'
         perfs_L, perfs_null_L, fingerprints_L = shattering_dimensionality([trials],
                                                                           nreps=None,
-                                                                          nnulls=nnulls,
-                                                                          region=f'synthetic_P={IC}_L={L}',
+                                                                          nnulls=10,
+                                                                          region=f'synthetic/P={IC}_L={L}_s={synthetic_params["sigma"]}',
                                                                           folder=folder,
                                                                           cache_name=cache_name,
                                                                           IC=True,
@@ -81,8 +86,10 @@ def run(region):
         ts, y, ax = csd_plot(perfs_L, t0=np.percentile(perfs_null_L, 99), t1=np.nanmax(perfs_L), label=f'Synthetic L={L} P={IC}',
                              ax=ax, linestyle='--')
         deltas.append(np.nanmean(y - y_orig))
-    ax.legend(fontsize=8)
+        if deltas[-1] < 0:
+            break
 
+    ax.legend(fontsize=8)
     ax = axs[1]
     ax.plot(Ls, deltas, color='k')
     for i, L in enumerate(Ls):
