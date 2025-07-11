@@ -53,9 +53,13 @@ def run(region):
 
     Ls = np.arange(1, IC, dtype=int)
     for L in Ls:
+        if IC > 11:
+            nreps = 500
+        else:
+            nreps = None
         cache_name = f'{region}_IC_{decoding_parhash}_collapse_{L}'
         perfs_L, perfs_null_L, fingerprints = shattering_dimensionality(megapooling * reduced_CT[region],
-                                                                        nreps=None,
+                                                                        nreps=nreps,
                                                                         nnulls=100,
                                                                         n_neurons=None,
                                                                         region=region + f'_collapsed_{L}',

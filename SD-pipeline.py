@@ -64,6 +64,11 @@ def run(region):
     ts, y_orig, ax = csd_plot(perfs_orig, t0=np.percentile(perfs_null, 99), t1=np.nanmax(perfs_orig), label=region, ax=ax, linewidth=2)
     Ls = range(1, IC+1)
     for L in Ls:
+        if IC > 11:
+            nreps = 500
+        else:
+            nreps = None
+
         synthetic_params['sigma'] = 1.0
         # Tune sigma in synthetic_params
         sigma = tune_noise(region=region, trials=megapooling*reduced_CT[region], L=L, P=IC,
@@ -75,7 +80,7 @@ def run(region):
         trials = generate_latent_representations(L=L, P=IC, **synthetic_params)
         cache_name = f'synthetic_IC_{decoding_parhash}_P={IC}_L={L}_{parhash(synthetic_params)}'
         perfs_L, perfs_null_L, fingerprints_L = shattering_dimensionality([trials],
-                                                                          nreps=None,
+                                                                          nreps=nreps,
                                                                           nnulls=10,
                                                                           region=f'synthetic/P={IC}_L={L}_s={synthetic_params["sigma"]}',
                                                                           folder=folder,
