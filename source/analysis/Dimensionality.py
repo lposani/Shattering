@@ -502,7 +502,7 @@ def shattering_dimensionality(conditioned_trials, nreps, nnulls=100, n_neurons=N
         allpath = cache_name + f'_data_alldics_IC={IC}_all.pck'
         if os.path.exists(allpath):
             [perfs, fingerprints] = pickle.load(open(allpath, 'rb'))
-            print('loading', allnullpath)
+            print('loading', allpath)
         else:
             for i in tqdm(range(len(dichotomies))):
                 ipath = cache_name + f'_data_alldics_IC={IC}_{i}.pck'
