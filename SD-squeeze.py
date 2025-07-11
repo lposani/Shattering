@@ -76,6 +76,7 @@ def run(region):
         plt.plot(L, deltas[i], color=pltcolors[i + 1], marker='o')
     ax.axhline(0, color=pltcolors[0], linestyle='--', linewidth=2.0)
     ax.set_ylabel('$\Delta$ AUC')
+    ax.set_xticks(Ls)
     ax.set_xlabel('Latent dimensionality $L$')
     f.savefig(f'./plots/IBL/{folder}/{region}_cdf.pdf')
 

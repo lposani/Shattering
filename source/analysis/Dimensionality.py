@@ -499,45 +499,67 @@ def shattering_dimensionality(conditioned_trials, nreps, nnulls=100, n_neurons=N
                 print(np.nanmean(perf), fingerprint)
     else:
         dichotomies = balanced_dichotomies(keys)
-        for i in tqdm(range(len(dichotomies))):
-            ipath = cache_name + f'_data_alldics_IC={IC}_{i}.pck'
-            if os.path.exists(ipath):
-                [perf, dichotomy] = pickle.load(open(ipath, 'rb'))
-            else:
-                classifier = LinearSVC(dual=False, C=1.0, class_weight='balanced', max_iter=1000)
+        allpath = cache_name + f'_data_alldics_IC={IC}_all.pck'
+        if os.path.exists(allpath):
+            [perfs, fingerprints] = pickle.load(open(allpath, 'rb'))
+            print('loading', allnullpath)
+        else:
+            for i in tqdm(range(len(dichotomies))):
+                ipath = cache_name + f'_data_alldics_IC={IC}_{i}.pck'
+                if os.path.exists(ipath):
+                    [perf, dichotomy] = pickle.load(open(ipath, 'rb'))
+                else:
+                    classifier = LinearSVC(dual=False, C=1.0, class_weight='balanced', max_iter=1000)
 
-                dichotomy = dichotomies[i]
-                perf = decode_dichotomy(conditioned_trials, dichotomy=dichotomy, n_neurons=n_neurons,
-                                        classifier=classifier,
-                                        subspace=subspace,
-                                        **decoding_params)
-                pickle.dump([perf, dichotomy], open(ipath, 'wb'))
+                    dichotomy = dichotomies[i]
+                    perf = decode_dichotomy(conditioned_trials, dichotomy=dichotomy, n_neurons=n_neurons,
+                                            classifier=classifier,
+                                            subspace=subspace,
+                                            **decoding_params)
+                    pickle.dump([perf, dichotomy], open(ipath, 'wb'))
 
-            perfs.append(np.nanmean(perf))
-            if not IC:
-                fingerprint = semantic_score2(dichotomy, convert_IBL=convert_dic)
-                fingerprints.append(fingerprint)
-                # print(np.nanmean(perf), fingerprint)
+                perfs.append(np.nanmean(perf))
+                if not IC:
+                    fingerprint = semantic_score2(dichotomy, convert_IBL=convert_dic)
+                    fingerprints.append(fingerprint)
+
+            # Save aggregated data and remove individual files
+            pickle.dump([perfs, fingerprints], open(allpath, 'wb'))
+            for i in range(len(dichotomies)):
+                ipath = cache_name + f'_data_alldics_IC={IC}_{i}.pck'
+                os.remove(ipath)
 
     # Null Model
-    for i in tqdm(range(nnulls)):
-        ipath = cache_name + f'_null_IC={IC}_{i}.pck'
-        if os.path.exists(ipath):
-            [perf_null, dichotomy] = pickle.load(open(ipath, 'rb'))
-        else:
-            classifier = LinearSVC(dual=False, C=1.0, class_weight='balanced', max_iter=1000)
-            # If unspecified: use a random dichotomy
-            randkeys = list(conditioned_trials[0].keys())
-            np.random.shuffle(randkeys)
-            dichotomy = [randkeys[:int(len(randkeys) / 2)], randkeys[int(len(randkeys) / 2):]]
+    allnullpath = cache_name + f'_null_IC={IC}_{nnulls}.pck'
+    if os.path.exists(allnullpath):
+        perfs_null = pickle.load(open(allnullpath, 'rb'))
+        print('loading', allnullpath)
+    else:
+        for i in tqdm(range(nnulls)):
+            ipath = cache_name + f'_null_IC={IC}_{i}.pck'
+            if os.path.exists(ipath):
+                [perf_null, dichotomy] = pickle.load(open(ipath, 'rb'))
+            else:
+                classifier = LinearSVC(dual=False, C=1.0, class_weight='balanced', max_iter=1000)
+                # If unspecified: use a random dichotomy
+                randkeys = list(conditioned_trials[0].keys())
+                np.random.shuffle(randkeys)
+                dichotomy = [randkeys[:int(len(randkeys) / 2)], randkeys[int(len(randkeys) / 2):]]
 
-            shuffled_conditioned_trials = shuffle_conditioned_trials(conditioned_trials)
-            perf_null = decode_dichotomy(shuffled_conditioned_trials, dichotomy=dichotomy, n_neurons=n_neurons,
-                                         classifier=classifier,
-                                         subspace=subspace, **decoding_params)
-            pickle.dump([perf_null, dichotomy], open(ipath, 'wb'))
+                shuffled_conditioned_trials = shuffle_conditioned_trials(conditioned_trials)
+                perf_null = decode_dichotomy(shuffled_conditioned_trials,
+                                             dichotomy=dichotomy, n_neurons=n_neurons,
+                                             classifier=classifier, subspace=subspace,
+                                             **decoding_params)
+                pickle.dump([perf_null, dichotomy], open(ipath, 'wb'))
 
-        perfs_null.append(np.nanmean(perf_null))
+            perfs_null.append(np.nanmean(perf_null))
+
+        # Save aggregated and delete
+        pickle.dump(perfs_null, open(allnullpath, 'wb'))
+        for i in tqdm(range(nnulls)):
+            ipath = cache_name + f'_null_IC={IC}_{i}.pck'
+            os.remove(ipath)
 
     ntop = np.percentile(perfs_null, 99)
     nbot = np.percentile(perfs_null, 1)
