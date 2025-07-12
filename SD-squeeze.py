@@ -57,6 +57,7 @@ def run(region):
             nreps = 500
         else:
             nreps = None
+
         cache_name = f'{region}_IC_{decoding_parhash}_collapse_{L}'
         perfs_L, perfs_null_L, fingerprints = shattering_dimensionality(megapooling * reduced_CT[region],
                                                                         nreps=nreps,

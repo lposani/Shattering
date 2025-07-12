@@ -480,6 +480,7 @@ def shattering_dimensionality(conditioned_trials, nreps, nnulls=100, n_neurons=N
             print('loading', allpath)
         else:
             for i in tqdm(range(nreps)):
+                print(i)
                 ipath = cache_name + f'_data_randdics_IC={IC}_{i}.pck'
                 if os.path.exists(ipath):
                     [perf, dichotomy] = pickle.load(open(ipath, 'rb'))
