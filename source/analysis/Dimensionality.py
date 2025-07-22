@@ -480,7 +480,6 @@ def shattering_dimensionality(conditioned_trials, nreps, nnulls=100, n_neurons=N
             print('loading', allpath)
         else:
             for i in tqdm(range(nreps)):
-                print(i)
                 ipath = cache_name + f'_data_randdics_IC={IC}_{i}.pck'
                 if os.path.exists(ipath):
                     [perf, dichotomy] = pickle.load(open(ipath, 'rb'))
@@ -707,9 +706,10 @@ def shattering_dimensionality(conditioned_trials, nreps, nnulls=100, n_neurons=N
                                 y1=ys5[0], y2=ys5[1])
             axs[1].axvline([nbot], color='k', linestyle='--', alpha=0.5)
             axs[1].axvline([ntop], color='k', linestyle='--', alpha=0.5)
-            axs[1].text(1, ys5[1], 'SD=%.2f' % np.nanmean(perfs > ntop), ha='right')
+            axs[1].text(1, ys5[1], 'SD=%.2f\n$\left<DP\\right>=%.2f$' % (np.nanmean(perfs > ntop), np.nanmean(perfs)), ha='right')
             axs[1].set_ylim(ys5)
             linenull(ax=axs[1], direction='v', null=np.nanmean(perfs_null))
+            axs[1].axvline(np.nanmean(perfs), color='r')
             plt.suptitle(f'Region: {region}')
             plt.savefig(f'./plots/IBL/{folder}/SD/perfs_{region}_IC.pdf')
 

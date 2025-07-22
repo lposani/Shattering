@@ -55,8 +55,9 @@ def run(region):
                                                                      IC=True,
                                                                      **decoding_params)
 
-    f, axs = plt.subplots(2, 1, figsize=(4, 6), gridspec_kw={'height_ratios': [4, 1.75]})
+    f, axs = plt.subplots(3, 1, figsize=(4, 8), gridspec_kw={'height_ratios': [4, 1.75, 1.75]})
     deltas = []
+    mean_perfs = []
 
     ax = axs[0]
     ax.set_xlabel('Decoding Performance (normalized)')
@@ -91,6 +92,7 @@ def run(region):
         ts, y, ax = csd_plot(perfs_L, t0=np.percentile(perfs_null_L, 99), t1=np.nanmax(perfs_L), label=f'Synthetic L={L} P={IC}',
                              ax=ax, linestyle='--')
         deltas.append(np.nanmean(y - y_orig))
+        mean_perfs.append(np.nanmean(perfs_L))
         if deltas[-1] < 0:
             break
 
@@ -102,6 +104,15 @@ def run(region):
     ax.axhline(0, color=pltcolors[0], linestyle='--', linewidth=2.0)
     ax.set_ylabel('$\Delta$ AUC')
     ax.set_xlabel('Latent dimensionality $L$')
+
+    ax = axs[2]
+    ax.plot(Ls, mean_perfs, color='k')
+    for i, L in enumerate(Ls):
+        plt.plot(L, mean_perfs[i], color=pltcolors[i + 1], marker='o')
+    ax.axhline(np.nanmean(perfs_orig), color=pltcolors[0], linestyle='--', linewidth=2.0)
+    ax.set_ylabel('Mean Performance')
+    ax.set_xlabel('Latent dimensionality $L$')
+
     f.savefig(f'./plots/IBL/{folder}/{region}_cdf.pdf')
     plt.close(f)
 

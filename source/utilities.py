@@ -235,8 +235,9 @@ def CT_to_X(conditioned_trials, zscore=True):
     if zscore:
         for i in range(X.shape[1]):
             x = X[:, i]
-            x = (x - np.nanmean(x)) / np.nanstd(x)
-            X[:, i] = x
+            if np.nanstd(x):
+                x = (x - np.nanmean(x)) / np.nanstd(x)
+                X[:, i] = x
     return X
 
 
@@ -999,3 +1000,24 @@ def save_rotating_3d_scatter(X, filename='rotation.gif', frames=90, interval=50,
     ani.save(filename, writer='ffmpeg')
     plt.close(fig)
     print(f"Animation saved as {filename}")
+
+
+def corrfunc(x, y, ax=None, plot=True, **kws):
+    """Plot the correlation coefficient in the top left hand corner of a plot."""
+    print(x, y)
+    nanmask = (np.isnan(x) == 0) & (np.isnan(y) == 0)
+    x = x[nanmask]
+    y = y[nanmask]
+    slope, intercept, r, p, err = scipy.stats.linregress(x, y)
+    s, psp = scipy.stats.spearmanr(x, y)
+    ax = ax or plt.gca()
+    # if p < 0.05 or psp < 0.05:
+    #     ax.annotate(f'r = {r:.2f}\n{p_to_ast(p):s}\nρ = {s:.2f}\n{p_to_ast(psp):s}\nn = {len(x):.0f}', xy=(.75, .01),
+    #                 xycoords=ax.transAxes, fontsize=8, color='k')
+    # else:
+    #     ax.annotate(f'r = {r:.2f}\n{p_to_ast(p):s}\nρ = {s:.2f}\n{p_to_ast(psp):s}\nn = {len(x):.0f}', xy=(.75, .01),
+    #                 xycoords=ax.transAxes, fontsize=8, color='k')
+    ax.set_title('$\\rho=%.2f$ '%s+p_to_text(psp), fontsize=9)
+    xs = ax.get_xlim()
+    if plot:
+        ax.plot(xs, slope * np.asarray(xs) + intercept, color=pltcolors[1], linewidth=2, alpha=0.5)

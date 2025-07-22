@@ -636,12 +636,32 @@ def generate_clustered_data(num_trials, num_matrices, matrix_shapes, cluster_cen
     return conditioned_trials
 
 
-# Example usage
-num_trials = 5
-num_matrices = 3
-matrix_shapes = [(10, 5), (15, 5), (20, 5)]
-cluster_centers = [np.array([5, -5, 5, -5, 5]), np.array([-3, 3, -3, 3, -3]), np.array([2, 2, -2, -2, 2])]
-cluster_spreads = [1.0, 1.5, 2.0]
+def collapse_raster_to_target(raster, target_tr_mean, collapse_alpha):
+    tr_mean = np.nanmean(raster, 0)
+    delta_tr = tr_mean - target_tr_mean
+    collapsed_raster = raster - collapse_alpha * delta_tr
+    return collapsed_raster
 
-clustered_conditioned_trials = generate_clustered_data(num_trials, num_matrices, matrix_shapes, cluster_centers,
-                                                       cluster_spreads)
+
+def collapse_trials(conditioned_trials, cluster_labels, alpha):
+    target_means = {}
+    for key in conditioned_trials[0]:
+        x = np.hstack([np.nanmean(c[key], 0) for c in conditioned_trials])
+        xc = np.zeros(len(x))
+        for c in np.unique(cluster_labels):
+            cmask = cluster_labels == c
+            xc[cmask] = np.nanmean(x[cmask])
+        target_means[key] = xc
+
+    idx = 0
+
+    collapsed_conditioned_trials = []
+    for c in conditioned_trials:
+        t = c[list(c.keys())[0]].shape[1]
+        collapsed_c = {}
+        for key in c:
+            collapsed_c[key] = collapse_raster_to_target(c[key], target_means[key][idx:idx+t], alpha)
+        collapsed_conditioned_trials.append(collapsed_c)
+        idx += t
+
+    return collapsed_conditioned_trials

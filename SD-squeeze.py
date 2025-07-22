@@ -1,3 +1,8 @@
+import pickle
+
+import matplotlib.pyplot as plt
+import numpy as np
+
 from IBL_settings import *
 from source.analysis.Dimensionality import *
 from source.analysis.Clustering import *
@@ -21,8 +26,14 @@ ndata_tot = decoding_params['ndata']
 decoding_parhash = parhash(decoding_params)
 nnulls = 100
 
+allperfs = {}
+allperfs_null = {}
 
-def run(region):
+
+def run(region, L0=1):
+    allperfs[region] = {}
+    allperfs_null[region] = {}
+
     trials = reduced_CT[region]
     IC = len(trials[0].keys())
     keys = list(trials[0].keys())
@@ -42,16 +53,19 @@ def run(region):
                                                                      IC=True,
                                                                      **decoding_params)
 
-    f, axs = plt.subplots(2, 1, figsize=(4, 6), gridspec_kw={'height_ratios': [4, 1.75]})
+    f, axs = plt.subplots(3, 1, figsize=(4, 8), gridspec_kw={'height_ratios': [4, 1.75, 1.75]})
     ax = axs[0]
-
+    mean_perfs = []
     deltas = []
     ts, y_orig, ax = csd_plot(perfs_orig, t0=np.percentile(perfs_null, 99), t1=np.nanmax(perfs_orig), label=region, ax=ax,
                               linewidth=2)
     ax.set_xlabel('Decoding Performance (normalized)')
     ax.set_ylabel('Cumulative Density')
 
-    Ls = np.arange(1, IC, dtype=int)
+    allperfs[region][-1] = perfs_orig
+    allperfs_null[region][-1] = perfs_null
+
+    Ls = np.arange(L0, IC, dtype=int)
     for L in Ls:
         if IC > 11:
             nreps = 500
@@ -73,17 +87,39 @@ def run(region):
                              label=f'Projected L={L}',
                              ax=ax, linestyle='--')
         deltas.append(np.nanmean(y - y_orig))
+        mean_perfs.append(np.nanmean(np.asarray(perfs_L) > 0.666))
+        allperfs[region][L] = perfs_L
+        allperfs_null[region][L] = perfs_null_L
 
     ax.legend(fontsize=8)
+
     ax = axs[1]
     ax.plot(Ls, deltas, color='k')
     for i, L in enumerate(Ls):
-        plt.plot(L, deltas[i], color=pltcolors[i + 1], marker='o')
+        ax.plot(L, deltas[i], color=pltcolors[i + 1], marker='o')
     ax.axhline(0, color=pltcolors[0], linestyle='--', linewidth=2.0)
     ax.set_ylabel('$\Delta$ AUC')
     ax.set_xticks(Ls)
     ax.set_xlabel('Latent dimensionality $L$')
+
+    ax = axs[2]
+    ax.plot(Ls, mean_perfs, color='k')
+    for i, L in enumerate(Ls):
+        ax.plot(L, mean_perfs[i], color=pltcolors[i + 1], marker='o')
+    ax.axhline(np.nanmean(perfs_orig), color=pltcolors[0], linestyle='--', linewidth=2.0)
+    ax.set_ylabel('Mean Performance')
+    ax.set_xticks(Ls)
+    # ax.set_ylim([0.5, 1.0])
+    ax.set_xlabel('Latent dimensionality $L$')
+
     f.savefig(f'./plots/IBL/{folder}/{region}_cdf.pdf')
+    plt.close(f)
+
+
+# for region in reduced_CT:
+#     run(region)
+#
+# pickle.dump([allperfs, allperfs_null], open('./datasets/IBL/allperfs_L.pck', 'wb'))
 
 
 if __name__ == '__main__':
@@ -92,4 +128,8 @@ if __name__ == '__main__':
         sys.exit(1)
 
     region = sys.argv[1]
-    run(region)
+    if len(sys.argv)>2:
+        L0 = int(sys.argv[2])
+    else:
+        L0 = 1
+    run(region, L0)
