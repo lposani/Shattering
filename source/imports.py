@@ -1,7 +1,7 @@
 import matplotlib
-matplotlib.use('MacOSX')  # Try 'TkAgg' first, as it’s more likely pre-installed on macOS
-import matplotlib.pyplot as plt
-plt.ion()
+# matplotlib.use('MacOSX')  # Try 'TkAgg' first, as it’s more likely pre-installed on macOS
+# import matplotlib.pyplot as plt
+# plt.ion()
 import copy
 import os.path
 import pickle

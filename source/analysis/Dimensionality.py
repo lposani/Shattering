@@ -253,6 +253,17 @@ def decode_dichotomy(conditioned_trials, dichotomy=None,
             training_array_B.append(training)
             testing_array_B.append(testing)
 
+        # Subsample to a given number of neurons
+        if n_neurons is not None:
+            subset = np.random.choice(training_array_A[0].shape[1], n_neurons, replace=False)
+            for k in training_trials:
+                training_trials[k] = training_trials[k][:, subset]
+                testing_trials[k] = testing_trials[k][:, subset]
+            training_array_A = [t[:, subset] for t in training_array_A]
+            training_array_B = [t[:, subset] for t in training_array_B]
+            testing_array_A = [t[:, subset] for t in testing_array_A]
+            testing_array_B = [t[:, subset] for t in testing_array_B]
+
         if subspace is not None:
             from source.analysis.Clustering import CT_to_X
 
@@ -321,12 +332,6 @@ def decode_dichotomy(conditioned_trials, dichotomy=None,
         if shuffled:
             np.random.shuffle(training_labels)
             np.random.shuffle(testing_labels)
-
-        # Subsample to a given number of neurons
-        if n_neurons is not None:
-            subset = np.random.choice(training_raster.shape[1], n_neurons, replace=False)
-            training_raster = training_raster[:, subset]
-            testing_raster = testing_raster[:, subset]
 
         classifier.fit(training_raster, training_labels)
         performance = classifier.score(testing_raster, testing_labels)

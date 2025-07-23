@@ -25,7 +25,7 @@ nnulls = 100
 Ns = [60, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
 
 
-def run(region):
+def run(region, L=None):
     trials = reduced_CT[region]
     IC = len(trials[0].keys())
     keys = list(trials[0].keys())
@@ -44,20 +44,36 @@ def run(region):
 
         megapooling = ceil(n_neurons / n)
         print(region, n, megapooling, IC)
-
-        cache_name = f'{region}_IC_{decoding_parhash}_N={n_neurons}'
-        perfs_L, perfs_null_L, fingerprints = shattering_dimensionality(megapooling * reduced_CT[region],
-                                                                        nreps=nreps,
-                                                                        nnulls=100,
-                                                                        n_neurons=n_neurons,
-                                                                        region=region + f'_N={n_neurons}',
-                                                                        folder=folder,
-                                                                        cache_name=cache_name,
-                                                                        IC=True,
-                                                                        **decoding_params)
-        ts, y, ax = csd_plot(perfs_L, t0=np.percentile(perfs_null_L, 99), t1=np.nanmax(perfs_L),
+        if L is not None:
+            cache_name = f'{region}_IC_{decoding_parhash}_N={n_neurons}_L={L}'
+            perfs_L, perfs_null_L, fingerprints = shattering_dimensionality(megapooling * reduced_CT[region],
+                                                                            nreps=nreps,
+                                                                            nnulls=100,
+                                                                            n_neurons=n_neurons,
+                                                                            region=region + f'_N={n_neurons}_L={L}',
+                                                                            folder=folder,
+                                                                            cache_name=cache_name,
+                                                                            IC=True,
+                                                                            subspace=L,
+                                                                            **decoding_params)
+            ts, y, ax = csd_plot(perfs_L, t0=np.percentile(perfs_null_L, 99), t1=np.nanmax(perfs_L),
+                                 label=f'N={n_neurons}',
+                                 ax=axs[0], linestyle='--')
+        else:
+            cache_name = f'{region}_IC_{decoding_parhash}_N={n_neurons}'
+            perfs_L, perfs_null_L, fingerprints = shattering_dimensionality(megapooling * reduced_CT[region],
+                                                                            nreps=nreps,
+                                                                            nnulls=100,
+                                                                            n_neurons=n_neurons,
+                                                                            region=region + f'_N={n_neurons}',
+                                                                            folder=folder,
+                                                                            cache_name=cache_name,
+                                                                            IC=True,
+                                                                            **decoding_params)
+            ts, y, ax = csd_plot(perfs_L, t0=np.percentile(perfs_null_L, 99), t1=np.nanmax(perfs_L),
                              label=f'N={n_neurons}',
                              ax=axs[0], linestyle='--')
+
         AUCS.append(np.nanmean(y))
         mean_perfs.append(np.nanmean(perfs_L))
 
@@ -84,8 +100,10 @@ def run(region):
     ax.set_xticklabels(Ns)
     ax.set_xlabel('N neurons')
     ax.set_ylim([0.5, 1.0])
-
-    f.savefig(f'./plots/IBL/{folder}/{region}_Ns.pdf')
+    if L is None:
+        f.savefig(f'./plots/IBL/{folder}/{region}_Ns.pdf')
+    else:
+        f.savefig(f'./plots/IBL/{folder}/{region}_Ns_L={L}.pdf')
     plt.close(f)
 
 
@@ -94,4 +112,8 @@ if __name__ == '__main__':
         print("Usage: python SD-pipeline.py <region>")
         sys.exit(1)
     region = sys.argv[1]
-    run(region)
+    if len(sys.argv) >= 3:
+        L = int(sys.argv[2])
+    else:
+        L = None
+    run(region, L)
