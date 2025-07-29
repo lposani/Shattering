@@ -419,6 +419,9 @@ def XORs(keys):
 def shattering_dimensionality(conditioned_trials, nreps, nnulls=100, n_neurons=None, region=None, folder=None,
                               IC=False, ax=None, convert_dic=True, subspace=None, add_semantic=False,
                               add_xors=False, cache_name=None, **decoding_params):
+    if type(conditioned_trials) != list:
+        conditioned_trials = [conditioned_trials]
+
     cache_name = f'./datasets/IBL/SD_cache/{cache_name}_N={n_neurons}'
     perfs = []
     perfs_null = []
@@ -435,7 +438,6 @@ def shattering_dimensionality(conditioned_trials, nreps, nnulls=100, n_neurons=N
     # Semantic Dichotomies
     if add_semantic:
         semantic_dics = semantic_dichotomies(keys)
-
         for i, dic in enumerate(semantic_dics):
             ipath = cache_name + f'_sem{i}.pck'
             if os.path.exists(ipath):
@@ -484,6 +486,7 @@ def shattering_dimensionality(conditioned_trials, nreps, nnulls=100, n_neurons=N
             [perfs, fingerprints] = pickle.load(open(allpath, 'rb'))
             print('loading', allpath)
         else:
+            print(allpath, 'not found, computing dichotomies')
             for i in tqdm(range(nreps)):
                 ipath = cache_name + f'_data_randdics_IC={IC}_{i}.pck'
                 if os.path.exists(ipath):
@@ -720,7 +723,7 @@ def shattering_dimensionality(conditioned_trials, nreps, nnulls=100, n_neurons=N
 
             plt.close(f)
 
-    return perfs, perfs_null, fingerprints
+    return np.asarray(perfs), np.asarray(perfs_null), fingerprints
 
 
 def decoding_matrix(conditioned_trials, min_data, labels=None, plot_mds=False, plot_matrix=True, precomputed_perfs=None,

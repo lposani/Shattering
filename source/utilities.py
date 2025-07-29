@@ -1021,3 +1021,23 @@ def corrfunc(x, y, ax=None, plot=True, **kws):
     xs = ax.get_xlim()
     if plot:
         ax.plot(xs, slope * np.asarray(xs) + intercept, color=pltcolors[1], linewidth=2, alpha=0.5)
+
+
+def find_poly_maximum(x, y, degree):
+    # Fit polynomial of given degree
+    coeffs = np.polyfit(x, y, degree)
+    # Polynomial object for easy evaluation and differentiation
+    p = np.poly1d(coeffs)
+    # Compute derivative and find its roots (critical points)
+    dp = p.deriv()
+    critical_points = dp.r
+
+    # Evaluate second derivative to check for maxima
+    ddp = dp.deriv()
+    candidates = [xi.real for xi in critical_points if np.isreal(xi) and ddp(xi) < 0]
+
+    # Evaluate polynomial at candidate maxima
+    if not candidates:
+        return None  # no local maximum found
+    x_star = max(candidates, key=p)
+    return x_star, p

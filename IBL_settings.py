@@ -48,7 +48,7 @@ decoding_params = {
 
 IBL_params = {
     'perf_thr': 0.666,
-    'neurons': 640,
+    'neurons': 4000,
     'min_trials': 5,
     't0': 0,
     't1': 1.0,

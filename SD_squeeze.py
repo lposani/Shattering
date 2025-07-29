@@ -26,13 +26,10 @@ ndata_tot = decoding_params['ndata']
 decoding_parhash = parhash(decoding_params)
 nnulls = 100
 
-allperfs = {}
-allperfs_null = {}
-
 
 def run(region, L0=1):
-    allperfs[region] = {}
-    allperfs_null[region] = {}
+    allperfs = {}
+    allperfs_null = {}
 
     trials = reduced_CT[region]
     IC = len(trials[0].keys())
@@ -62,8 +59,8 @@ def run(region, L0=1):
     ax.set_xlabel('Decoding Performance (normalized)')
     ax.set_ylabel('Cumulative Density')
 
-    allperfs[region][-1] = perfs_orig
-    allperfs_null[region][-1] = perfs_null
+    allperfs[-1] = perfs_orig
+    allperfs_null[-1] = perfs_null
 
     Ls = np.arange(L0, IC, dtype=int)
     for L in Ls:
@@ -76,7 +73,7 @@ def run(region, L0=1):
         perfs_L, perfs_null_L, fingerprints = shattering_dimensionality(megapooling * reduced_CT[region],
                                                                         nreps=nreps,
                                                                         nnulls=100,
-                                                                        n_neurons=None,
+                                                                        n_neurons=n_neurons,
                                                                         region=region + f'_collapsed_{L}',
                                                                         folder=folder,
                                                                         cache_name=cache_name,
@@ -88,8 +85,8 @@ def run(region, L0=1):
                              ax=ax, linestyle='--')
         deltas.append(np.nanmean(y - y_orig))
         mean_perfs.append(np.nanmean(np.asarray(perfs_L) > 0.666))
-        allperfs[region][L] = perfs_L
-        allperfs_null[region][L] = perfs_null_L
+        allperfs[L] = perfs_L
+        allperfs_null[L] = perfs_null_L
 
     ax.legend(fontsize=8)
 
@@ -114,12 +111,7 @@ def run(region, L0=1):
 
     f.savefig(f'./plots/IBL/{folder}/{region}_cdf.pdf')
     plt.close(f)
-
-
-# for region in reduced_CT:
-#     run(region)
-#
-# pickle.dump([allperfs, allperfs_null], open('./datasets/IBL/allperfs_L.pck', 'wb'))
+    return allperfs, allperfs_null
 
 
 if __name__ == '__main__':

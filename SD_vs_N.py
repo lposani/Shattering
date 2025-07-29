@@ -35,6 +35,7 @@ def run(region, L=None):
 
     mean_perfs = []
     AUCS = []
+    seps = []
 
     for n_neurons in Ns:
         if IC > 11:
@@ -71,11 +72,12 @@ def run(region, L=None):
                                                                             IC=True,
                                                                             **decoding_params)
             ts, y, ax = csd_plot(perfs_L, t0=np.percentile(perfs_null_L, 99), t1=np.nanmax(perfs_L),
-                             label=f'N={n_neurons}',
-                             ax=axs[0], linestyle='--')
+                                 label=f'N={n_neurons}',
+                                 ax=axs[0], linestyle='--')
 
         AUCS.append(np.nanmean(y))
         mean_perfs.append(np.nanmean(perfs_L))
+        seps.append(np.nanmean(np.asarray(perfs_L) > np.nanmax(perfs_null_L)))
 
     ax = axs[0]
     ax.legend(fontsize=8)
@@ -105,6 +107,7 @@ def run(region, L=None):
     else:
         f.savefig(f'./plots/IBL/{folder}/{region}_Ns_L={L}.pdf')
     plt.close(f)
+    return np.asarray(mean_perfs), np.asarray(AUCS), np.asarray(seps)
 
 
 if __name__ == '__main__':

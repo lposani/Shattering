@@ -168,7 +168,7 @@ def hamming_distance(str1, str2):
     return sum(c1 != c2 for c1, c2 in zip(str1, str2))
 
 
-def visualize_geometry(X, condition_labels, ax=None, pcs=None, fitted_pca=None, equalize=True):
+def visualize_geometry(X, condition_labels, ax=None, pcs=None, fitted_pca=None, equalize=True, lims=None):
     if fitted_pca is None:
         fitted_pca = PCA(n_components=4)
         X_reduced = fitted_pca.fit_transform(X.T)
@@ -195,16 +195,23 @@ def visualize_geometry(X, condition_labels, ax=None, pcs=None, fitted_pca=None, 
         for i in range(len(condition_labels)):
             ax.scatter(X_reduced[i, 0], X_reduced[i, 1], X_reduced[i, 2], alpha=0.7,
                        marker='$%s$' % condition_labels[i],
-                       s=1000, color=pltcolors[i], edgecolor='w', linewidths=5)
+                       s=250, color=pltcolors[i], edgecolor='w', linewidths=4)
             ax.scatter(X_reduced[i, 0], X_reduced[i, 1], X_reduced[i, 2], alpha=0.7,
                        marker='$%s$' % condition_labels[i],
-                       s=1000, color=pltcolors[i])
+                       s=250, color=pltcolors[i])
+            x, y, z = X_reduced[i, 0], X_reduced[i, 1], X_reduced[i, 2]
+            shadow_alpha = 0.2
+            if lims is not None:
+                ax.scatter(x, y, lims[2][0], color='k', alpha=shadow_alpha, marker='o')  # XY plane
+                ax.scatter(x, lims[1][1], z, color='k', alpha=shadow_alpha, marker='o')  # XZ plane
+                ax.scatter(lims[0][0], y, z, color='k', alpha=shadow_alpha, marker='o')  # YZ plane
+
         for i in range(len(condition_labels)):
             for j in range(i + 1, len(condition_labels)):
                 if hamming_distance(condition_labels[i], condition_labels[j]) == 1:
                     ax.plot([X_reduced[i][0], X_reduced[j][0]], [X_reduced[i][1], X_reduced[j][1]],
                             [X_reduced[i][2], X_reduced[j][2]], linestyle='-', linewidth=2, color='k',
-                            alpha=0.7)
+                            alpha=0.4)
         if equalize:
             equalize_ax(ax)
         ax.set_xticklabels([])
@@ -612,7 +619,7 @@ def sscore_z(coef_vs, eids, clus_param, Nnull,
 
 # Random clustered data generator
 
-def generate_clustered_data(num_trials, num_matrices, matrix_shapes, cluster_centers, cluster_spreads):
+def generate_clustered_data2(num_trials, num_matrices, matrix_shapes, cluster_centers, cluster_spreads):
     conditioned_trials = []
 
     for _ in range(num_trials):
